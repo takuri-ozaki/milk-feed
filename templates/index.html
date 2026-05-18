@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ミルク予定表</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 1rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.2rem; margin: 0 0 0.5rem; }
+  h2 { font-size: 1rem; margin: 1.2rem 0 0.4rem; border-bottom: 1px solid #ccc; padding-bottom: 0.2rem; }
+  .now { color: #666; font-size: 0.85rem; margin-bottom: 0.6rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ddd; padding: 0.25rem 0.4rem; font-size: 0.9rem; text-align: left; }
+  th { background: #f5f5f5; }
+  td.idx { width: 2.5rem; text-align: right; color: #888; }
+  td.range { white-space: nowrap; }
+  td.cell { padding: 0.25rem; }
+  form.inline { display: inline; }
+  form.cell-form { display: flex; gap: 4px; margin: 0; }
+  form.cell-form button {
+    flex: 1; min-width: 2.4rem; min-height: 2.4rem;
+    padding: 0.4rem 0; font-size: 1.25rem; line-height: 1;
+    border: 1px solid #ccc; background: #fafafa; cursor: pointer;
+    font-weight: bold;
+  }
+  form.cell-form button.s-o { color: #d32f2f; }   /* ◯ red   */
+  form.cell-form button.s-t { color: #2e7d32; }   /* △ green */
+  form.cell-form button.s-x { color: #1565c0; }   /* ✕ blue  */
+  form.cell-form button.s-n { color: #888; font-weight: normal; font-size: 0.95rem; }
+  form.cell-form button.sel { border-color: #333; background: #fff; box-shadow: inset 0 0 0 1px #333; }
+  .settings-grid { display: grid; grid-template-columns: max-content 1fr max-content 1fr; gap: 0.4rem 0.6rem; align-items: center; }
+  .settings-grid input[type=text] { width: 100%; }
+  .settings-grid input[type=number] { width: 6rem; }
+  .actions { margin-top: 0.5rem; }
+  button, input[type=submit] { font: inherit; }
+  .past-list { margin: 0; padding: 0; list-style: none; }
+  .past-list li { padding: 0.2rem 0; }
+  .danger { color: #a00; }
+  .muted { color: #999; }
+</style>
+<link rel="icon" href="./favicon.ico">
+</head>
+<body>
+
+<h1>ミルク予定表</h1>
+<div class="now">いま: {{.NowDateline}}</div>
+
+<h2>設定</h2>
+<form method="post" action="/settings">
+  <div class="settings-grid">
+    <label for="interval_min_minutes">間隔(分) 最小</label>
+    <input id="interval_min_minutes" type="number" name="interval_min_minutes" min="1" value="{{.Settings.IntervalMinMinutes}}" required>
+    <label for="interval_max_minutes">間隔(分) 最大</label>
+    <input id="interval_max_minutes" type="number" name="interval_max_minutes" min="1" value="{{.Settings.IntervalMaxMinutes}}" required>
+  </div>
+  <div class="actions"><button type="submit">設定を保存</button></div>
+</form>
+
+<h2>直近の実績</h2>
+{{if .PastFeeds}}
+<ul class="past-list">
+  {{range .PastFeeds}}
+  <li>
+    {{.When}}
+    <form class="inline" method="post" action="/feedings/delete" onsubmit="return confirm('この実績を削除しますか？');">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <button type="submit" class="danger">削除</button>
+    </form>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">まだ実績はありません。</p>
+{{end}}
+
+<h2>次の予定を調整（オプション）</h2>
+{{if .HasAdjustment}}
+<p>
+  次の予定: <strong>{{.AdjustmentTime}}</strong>
+  {{if .AdjustmentReason}} <span class="muted">— 理由: {{.AdjustmentReason}}</span>{{end}}
+  <form class="inline" method="post" action="/adjustment/delete">
+    <button type="submit" class="danger">取消</button>
+  </form>
+</p>
+{{else}}
+<p class="muted">通常の間隔通りに表示中。</p>
+{{end}}
+<form method="post" action="/adjustment">
+  <div class="settings-grid">
+    <label for="adj_target">次の予定時刻</label>
+    <input id="adj_target" type="datetime-local" name="target" value="{{.AdjustInputDefault}}" required>
+    <label for="adj_reason">理由</label>
+    <input id="adj_reason" type="text" name="reason" value="{{.AdjustmentReason}}" placeholder="例: あまり飲まなかった">
+  </div>
+  <div class="actions"><button type="submit">調整を保存</button></div>
+</form>
+
+<h2>あげた時刻を記録</h2>
+<form method="post" action="/feedings">
+  <input type="datetime-local" name="fed_at" value="{{.NextFeedAt}}">
+  <button type="submit">記録する</button>
+</form>
+
+<h2>予定（{{len .Slots}}枠）</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>時間帯</th>
+      <th>{{.CaregiverA}}</th>
+      <th>{{.CaregiverB}}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Slots}}
+    <tr>
+      <td class="idx">{{.Index}}</td>
+      <td class="range">{{.Range}}</td>
+      <td class="cell">
+        <form class="cell-form" method="post" action="/assignments">
+          <input type="hidden" name="slot_index" value="{{.Index}}">
+          <input type="hidden" name="caregiver" value="a">
+          <button name="status" value="o" class="s-o {{if eq .StatusA "o"}}sel{{end}}">◯</button>
+          <button name="status" value="t" class="s-t {{if eq .StatusA "t"}}sel{{end}}">△</button>
+          <button name="status" value="x" class="s-x {{if eq .StatusA "x"}}sel{{end}}">✕</button>
+          <button name="status" value="none" class="s-n {{if eq .StatusA ""}}sel{{end}}">未</button>
+        </form>
+      </td>
+      <td class="cell">
+        <form class="cell-form" method="post" action="/assignments">
+          <input type="hidden" name="slot_index" value="{{.Index}}">
+          <input type="hidden" name="caregiver" value="b">
+          <button name="status" value="o" class="s-o {{if eq .StatusB "o"}}sel{{end}}">◯</button>
+          <button name="status" value="t" class="s-t {{if eq .StatusB "t"}}sel{{end}}">△</button>
+          <button name="status" value="x" class="s-x {{if eq .StatusB "x"}}sel{{end}}">✕</button>
+          <button name="status" value="none" class="s-n {{if eq .StatusB ""}}sel{{end}}">未</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+
+</body>
+</html>
