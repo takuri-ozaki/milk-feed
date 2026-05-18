@@ -17,8 +17,34 @@ const (
 	dbPath        = "data.db"
 	pastDisplayN  = 2
 	scheduleCount = scheduleSlotCount
-	datetimeLocal = "2006-01-02T15:04"
+	timeOnly      = "15:04"
 )
+
+// closestTime returns the time.Time whose HH:MM matches raw, on whichever of
+// yesterday/today/tomorrow is closest in absolute duration to now.
+func closestTime(raw string, now time.Time, loc *time.Location) (time.Time, error) {
+	t, err := time.ParseInLocation(timeOnly, raw, loc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	y, mo, d := now.Date()
+	base := time.Date(y, mo, d, t.Hour(), t.Minute(), 0, 0, loc)
+	best := base
+	for _, delta := range []time.Duration{-24 * time.Hour, 24 * time.Hour} {
+		candidate := base.Add(delta)
+		if abs(candidate.Sub(now)) < abs(best.Sub(now)) {
+			best = candidate
+		}
+	}
+	return best, nil
+}
+
+func abs(d time.Duration) time.Duration {
+	if d < 0 {
+		return -d
+	}
+	return d
+}
 
 type viewModel struct {
 	Settings           Settings
@@ -156,9 +182,9 @@ func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	naturalNext := anchor.Add(time.Duration(settings.IntervalMinMinutes) * time.Minute).In(s.loc)
-	adjustInputDefault := naturalNext.Format(datetimeLocal)
+	adjustInputDefault := naturalNext.Format(timeOnly)
 	if hasAdj {
-		adjustInputDefault = adj.Target.In(s.loc).Format(datetimeLocal)
+		adjustInputDefault = adj.Target.In(s.loc).Format(timeOnly)
 	}
 
 	vm := viewModel{
@@ -166,7 +192,7 @@ func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		CaregiverA:         CaregiverAName,
 		CaregiverB:         CaregiverBName,
 		PastFeeds:          pastViews,
-		NextFeedAt:         now.Format(datetimeLocal),
+		NextFeedAt:         now.Format(timeOnly),
 		Slots:              slotViews,
 		NowDateline:        now.Format("2006-01-02 (Mon) 15:04"),
 		HasAdjustment:      hasAdj,
@@ -264,7 +290,7 @@ func (s *server) handleFeedings(w http.ResponseWriter, r *http.Request) {
 	if raw == "" {
 		t = time.Now()
 	} else {
-		parsed, err := time.ParseInLocation(datetimeLocal, raw, s.loc)
+		parsed, err := closestTime(raw, time.Now().In(s.loc), s.loc)
 		if err != nil {
 			http.Error(w, "fed_at invalid", http.StatusBadRequest)
 			return
@@ -313,7 +339,7 @@ func (s *server) handleAdjustment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "target required", http.StatusBadRequest)
 		return
 	}
-	target, err := time.ParseInLocation(datetimeLocal, raw, s.loc)
+	target, err := closestTime(raw, time.Now().In(s.loc), s.loc)
 	if err != nil {
 		http.Error(w, "target invalid", http.StatusBadRequest)
 		return

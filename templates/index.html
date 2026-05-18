@@ -35,14 +35,22 @@
   .settings-grid input { padding: 0.4rem 0.5rem; }
   .actions { margin-top: 0.7rem; }
   button, input[type=submit] { font: inherit; }
-  button, input[type=submit], input[type=text], input[type=number], input[type=datetime-local] {
+  button, input[type=submit], input[type=text], input[type=number] {
     font-size: 1.05rem;
   }
+  input[type=time] {
+    font-size: 2rem; padding: 0.8rem 1rem; font-weight: bold;
+  }
+  .settings-grid input[type=time] { width: auto; justify-self: start; }
   form[action="/settings"] button, form[action="/adjustment"] button, form[action="/feedings"] button,
   form[action="/adjustment/delete"] button, form[action="/feedings/delete"] button {
     padding: 1rem 2rem; font-size: 1.5rem; cursor: pointer;
   }
-  form[action="/feedings"] input[type=datetime-local] { padding: 0.45rem 0.5rem; margin-right: 0.4rem; }
+  form[action="/feedings"] { display: flex; gap: 0; }
+  form[action="/feedings"] input[type=time],
+  form[action="/feedings"] button {
+    flex: 1 1 50%; min-width: 0; margin: 0; box-sizing: border-box;
+  }
   .past-list { margin: 0; padding: 0; list-style: none; }
   .past-list li { padding: 0.35rem 0; font-size: 1.05rem; }
   .danger { color: #a00; }
@@ -87,7 +95,7 @@
 <form method="post" action="/adjustment">
   <div class="settings-grid">
     <label for="adj_target">次の予定時刻</label>
-    <input id="adj_target" type="datetime-local" name="target" value="{{.AdjustInputDefault}}" required>
+    <input id="adj_target" type="time" name="target" value="{{.AdjustInputDefault}}" required>
     <label for="adj_reason">理由</label>
     <input id="adj_reason" type="text" name="reason" value="{{.AdjustmentReason}}" placeholder="例: あまり飲まなかった">
   </div>
@@ -96,7 +104,7 @@
 
 <h2>あげた時刻を記録</h2>
 <form method="post" action="/feedings">
-  <input type="datetime-local" name="fed_at" value="{{.NextFeedAt}}">
+  <input type="time" name="fed_at" value="{{.NextFeedAt}}">
   <button type="submit">記録する</button>
 </form>
 
