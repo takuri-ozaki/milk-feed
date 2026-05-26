@@ -100,6 +100,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleIndex)
 	mux.HandleFunc("/favicon.ico", s.handleFavicon)
+	mux.HandleFunc("/apple-icon.png", s.handleAppleIcon)
 	mux.HandleFunc("/settings", s.handleSettings)
 	mux.HandleFunc("/assignments", s.handleAssignments)
 	mux.HandleFunc("/feedings", s.handleFeedings)
@@ -211,6 +212,10 @@ func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) handleFavicon(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/favicon.ico")
+}
+
+func (s *server) handleAppleIcon(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "static/apple-icon.png")
 }
 
 func (s *server) handleSettings(w http.ResponseWriter, r *http.Request) {

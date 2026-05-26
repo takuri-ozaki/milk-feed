@@ -57,6 +57,7 @@
   .muted { color: #999; }
 </style>
 <link rel="icon" href="./favicon.ico">
+<link rel="apple-touch-icon" href="./apple-icon.png" sizes="180x180">
 </head>
 <body>
 
@@ -79,28 +80,6 @@
 {{else}}
 <p class="muted">まだ実績はありません。</p>
 {{end}}
-
-<h2>次の予定を調整（オプション）</h2>
-{{if .HasAdjustment}}
-<p>
-  次の予定: <strong>{{.AdjustmentTime}}</strong>
-  {{if .AdjustmentReason}} <span class="muted">— 理由: {{.AdjustmentReason}}</span>{{end}}
-  <form class="inline" method="post" action="/adjustment/delete">
-    <button type="submit" class="danger">取消</button>
-  </form>
-</p>
-{{else}}
-<p class="muted">通常の間隔通りに表示中。</p>
-{{end}}
-<form method="post" action="/adjustment">
-  <div class="settings-grid">
-    <label for="adj_target">次の予定時刻</label>
-    <input id="adj_target" type="time" name="target" value="{{.AdjustInputDefault}}" required>
-    <label for="adj_reason">理由</label>
-    <input id="adj_reason" type="text" name="reason" value="{{.AdjustmentReason}}" placeholder="例: あまり飲まなかった">
-  </div>
-  <div class="actions"><button type="submit">調整を保存</button></div>
-</form>
 
 <h2>あげた時刻を記録</h2>
 <form method="post" action="/feedings">
@@ -147,6 +126,28 @@
     {{end}}
   </tbody>
 </table>
+
+<h2>次の予定を調整（オプション）</h2>
+{{if .HasAdjustment}}
+<p>
+  次の予定: <strong>{{.AdjustmentTime}}</strong>
+  {{if .AdjustmentReason}} <span class="muted">— 理由: {{.AdjustmentReason}}</span>{{end}}
+  <form class="inline" method="post" action="/adjustment/delete">
+    <button type="submit" class="danger">取消</button>
+  </form>
+</p>
+{{else}}
+<p class="muted">通常の間隔通りに表示中。</p>
+{{end}}
+<form method="post" action="/adjustment">
+  <div class="settings-grid">
+    <label for="adj_target">次の予定時刻</label>
+    <input id="adj_target" type="time" name="target" value="{{.AdjustInputDefault}}" required>
+    <label for="adj_reason">理由</label>
+    <input id="adj_reason" type="text" name="reason" value="{{.AdjustmentReason}}" placeholder="例: あまり飲まなかった">
+  </div>
+  <div class="actions"><button type="submit">調整を保存</button></div>
+</form>
 
 <h2>設定</h2>
 <form method="post" action="/settings">

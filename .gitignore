@@ -5,3 +5,5 @@ data.db-shm
 milking
 milking.pid
 milking.log
+static/*.png
+static/*.ico
